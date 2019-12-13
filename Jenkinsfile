@@ -12,7 +12,7 @@ def helmInit() {
 
 def helmRepo(Map args) {
   println "添加 course repo"
-  sh "helm repo add --username ${args.username} --password ${args.password} course https://registry.qikqiak.com/chartrepo/course"
+  sh "helm repo add --username ${args.username} --password ${args.password} course http://harbor-harbor-core.kube-ops.svc.cluster.local/chartrepo/course"
 
   println "更新 repo"
   sh "helm repo update"
@@ -30,10 +30,10 @@ def helmDeploy(Map args) {
 
     if (args.dry_run) {
         println "Debug 应用"
-        sh "helm upgrade --dry-run --debug --install ${args.name} ${args.chartDir} --set persistence.persistentVolumeClaim.database.storageClass=database --set api.image.repository=${args.image} --set api.image.tag=${args.tag} --set imagePullSecrets[0].name=myreg --namespace=${args.namespace}"
+        sh "helm upgrade --dry-run --debug --install ${args.name} ${args.chartDir} --set persistence.persistentVolumeClaim.database.storageClass=database --set api.image.repository=${args.image} --set api.image.tag=${args.tag} --set imagePullSecrets[0].name=myreg --namespace=course"
     } else {
         println "部署应用"
-        sh "helm upgrade --install ${args.name} ${args.chartDir} --set persistence.persistentVolumeClaim.database.storageClass=database --set api.image.repository=${args.image} --set api.image.tag=${args.tag} --set imagePullSecrets[0].name=myreg --namespace=${args.namespace}"
+        sh "helm upgrade --install ${args.name} ${args.chartDir} --set persistence.persistentVolumeClaim.database.storageClass=database --set api.image.repository=${args.image} --set api.image.tag=${args.tag} --set imagePullSecrets[0].name=myreg --namespace=course"
         echo "应用 ${args.name} 部署成功. 可以使用 helm status ${args.name} 查看应用状态"
     }
 }
@@ -53,7 +53,7 @@ podTemplate(label: label, containers: [
     def gitCommit = myRepo.GIT_COMMIT
     def gitBranch = myRepo.GIT_BRANCH
     def imageTag = sh(script: "git rev-parse --short HEAD", returnStdout: true).trim()
-    def dockerRegistryUrl = "registry.qikqiak.com"
+    def dockerRegistryUrl = "registry.linux8.org"
     def imageEndpoint = "course/polling-api"
     def image = "${dockerRegistryUrl}/${imageEndpoint}"
 
@@ -92,6 +92,7 @@ podTemplate(label: label, containers: [
         usernameVariable: 'DOCKER_HUB_USER',
         passwordVariable: 'DOCKER_HUB_PASSWORD']]) {
           container('helm') {
+            // todo，可以做分支判断
             echo "4. [INFO] 开始 Helm 部署"
             helmDeploy(
                 dry_run     : false,
